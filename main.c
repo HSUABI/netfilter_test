@@ -8,6 +8,8 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
+#include "printarr.h"
+
 /* returns packet id */
 static u_int32_t print_pkt (struct nfq_data *tb)
 {
@@ -56,7 +58,12 @@ static u_int32_t print_pkt (struct nfq_data *tb)
 
     ret = nfq_get_payload(tb, &data);
     if (ret >= 0)
+    {
+        int packet_len = ret;
+        if(packet_len>24) packet_len=24;
+        printarr(data , packet_len);
         printf("payload_len=%d ", ret);
+    }
 
     fputc('\n', stdout);
 
