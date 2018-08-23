@@ -5,6 +5,7 @@
 #include <linux/types.h>
 #include <linux/netfilter.h>        /* for NF_ACCEPT */
 #include <errno.h>
+#include <cstring>
 
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
@@ -22,6 +23,17 @@ static u_int32_t print_pkt (struct nfq_data *tb)
     u_int32_t mark,ifi; 
     int ret;
     unsigned char *data;
+
+    // My variables , structures
+    struct sniff_ip *ip;
+    struct sniff_tcp *tcp;
+    u_char *payload;
+    u_int size_ip;
+    u_int size_tcp;
+    u_int packet_len;
+    u_char forbidden_url[] = "www.gilgil.net";                    // Block access to www.gilgil.net
+    u_int forbidden_url_len = strlen((char *)forbidden_url);    // get url length        
+
 
     ph = nfq_get_msg_packet_hdr(tb);
     if (ph) {
@@ -62,10 +74,21 @@ static u_int32_t print_pkt (struct nfq_data *tb)
     ret = nfq_get_payload(tb, &data);
     if (ret >= 0)
     {
-        int packet_len = ret;
-        if(packet_len>24) packet_len=24;
-        printarr(data , packet_len);
-        printf("payload_len=%d ", ret);
+        ip = (struct sniff_ip*)(data);
+        size_ip = IP_HL(ip)*4; 
+        tcp = (struct sniff_tcp*)(data+size_ip);
+        size_tcp = TH_OFF(tcp)*4;
+        payload = (u_char*)(data+size_ip+size_tcp);
+
+        packet_len = ret;
+
+
+        if(tcp_check(ip->ip_p) && packet_len>0)
+        {
+            printf("payload_len=%d \n", ret);
+            printarr(payload + 22, 24);
+            if(!strncmp((char *)(payload+22) , (char *)forbidden_url , forbidden_url_len))    printf("\nwww.gilgil.net forbidden\n");
+        }
     }
 
     fputc('\n', stdout);
