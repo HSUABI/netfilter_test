@@ -14,6 +14,8 @@
 #include "protocol_check.h"
 #include "swap_endian.h"
 
+int flag = 1;
+
 /* returns packet id */
 static u_int32_t print_pkt (struct nfq_data *tb)
 {
@@ -31,7 +33,7 @@ static u_int32_t print_pkt (struct nfq_data *tb)
     u_int size_ip;
     u_int size_tcp;
     u_int packet_len;
-    u_char forbidden_url[] = "www.gilgil.net";                    // Block access to www.gilgil.net
+    u_char forbidden_url[] = "www.gilgil.net";                    // Block url
     u_int forbidden_url_len = strlen((char *)forbidden_url);    // get url length        
 
 
@@ -87,7 +89,12 @@ static u_int32_t print_pkt (struct nfq_data *tb)
         {
             printf("payload_len=%d \n", ret);
             printarr(payload + 22, 24);
-            if(!strncmp((char *)(payload+22) , (char *)forbidden_url , forbidden_url_len))    printf("\nwww.gilgil.net forbidden\n");
+            if(!strncmp((char *)(payload+22) , (char *)forbidden_url , forbidden_url_len))      //Check if HOST match with forbidden url
+            {
+                printf("%s is not allowed to connect\n",forbidden_url);
+                flag=0;                                                                                     // if url is same set flag 0
+            }
+            else flag=1;                                                                                    // if url isn't same set flag 1
         }
     }
 
@@ -102,7 +109,9 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 {
     u_int32_t id = print_pkt(nfa);
     printf("entering callback\n");
-    return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+
+    if(flag == 1)   return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);     // Accept packet if url is normal
+    else            return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);       // Drop packet if url is forbidden
 }
 
 int main(int argc, char **argv)
