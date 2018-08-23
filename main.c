@@ -9,6 +9,9 @@
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 #include "printarr.h"
+#include "protocol_structure.h"
+#include "protocol_check.h"
+#include "swap_endian.h"
 
 /* returns packet id */
 static u_int32_t print_pkt (struct nfq_data *tb)
